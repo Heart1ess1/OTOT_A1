@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GDP per Capita vs. Primary Energy Consumption Scatter Plot</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .dot {
+            fill: steelblue;
+            opacity: 0.7;
+        }
+        .axis-label {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <svg width="800" height="600"></svg>
+    <script>
+        var svg = d3.select("svg"),
+            margin = {top: 20, right: 20, bottom: 60, left: 60},
+            width = +svg.attr("width") - margin.left - margin.right,
+            height = +svg.attr("height") - margin.top - margin.bottom;
+
+        var x = d3.scaleLinear().range([0, width]);
+        var y = d3.scaleLinear().range([height, 0]);
+
+        var g = svg.append("g")
+                   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        d3.csv("global-data-on-sustainable-energy.csv").then(function(data) {
+            // Filter data for a specific year, e.g., 2020
+            var filteredData = data
+            //.filter(function(d) { return d.Year === "2020"; });
+
+            x.domain([0, d3.max(filteredData, function(d) { return +d["gdp_per_capita"]; })]);
+            y.domain([0, d3.max(filteredData, function(d) { return +d["Primary energy consumption per capita (kWh/person)"]; })]);
+
+            g.append("g")
+             .attr("transform", "translate(0," + height + ")")
+             .call(d3.axisBottom(x))
+             .append("text")
+             .attr("class", "axis-label")
+             .attr("y", 35)
+             .attr("x", width / 2)
+             .attr("text-anchor", "end")
+             .text("GDP per Capita");
+
+            g.append("g")
+             .call(d3.axisLeft(y))
+             .append("text")
+             .attr("class", "axis-label")
+             .attr("transform", "rotate(-90)")
+             .attr("y", -40)
+             .attr("x", -height / 2)
+             .attr("text-anchor", "end")
+             .text("Primary Energy Consumption per Capita (kWh/person)");
+
+            g.selectAll(".dot")
+             .data(filteredData)
+             .enter().append("circle")
+             .attr("class", "dot")
+             .attr("r", 3.5)
+             .attr("cx", function(d) { return x(+d["gdp_per_capita"]); })
+             .attr("cy", function(d) { return y(+d["Primary energy consumption per capita (kWh/person)"]); });
+        });
+    </script>
+</body>
+</html>

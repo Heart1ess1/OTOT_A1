@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Top 10 Countries CO2 Emissions vs. Year Line Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .line {
+            fill: none;
+            stroke-width: 2px;
+        }
+        .axis-label {
+            font-size: 14px;
+        }
+        .legend {
+            font-size: 12px;
+        }
+        .legend rect {
+            stroke-width: 2;
+            stroke: #fff;
+        }
+    </style>
+</head>
+<body>
+    <svg width="960" height="600"></svg>
+    <script>
+        var svg = d3.select("svg"),
+            margin = {top: 20, right: 150, bottom: 60, left: 60},
+            width = +svg.attr("width") - margin.left - margin.right,
+            height = +svg.attr("height") - margin.top - margin.bottom;
+
+        var x = d3.scaleLinear().range([0, width]);
+        var y = d3.scaleLinear().range([height, 0]);
+        var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        var line = d3.line()
+            .x(function(d) { return x(d.Year); })
+            .y(function(d) { return y(d["Value_co2_emissions_kt_by_country"]); });
+
+        var g = svg.append("g")
+                   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        d3.csv("global-data-on-sustainable-energy.csv").then(function(data) {
+            data.forEach(function(d) {
+                d.Year = +d.Year;
+                d["Value_co2_emissions_kt_by_country"] = +d["Value_co2_emissions_kt_by_country"];
+            });
+
+            var dataByCountry = d3.group(data, d => d.Entity);
+            var top10Countries = Array.from(dataByCountry)
+                                      .sort((a, b) => d3.sum(b[1], d => d["Value_co2_emissions_kt_by_country"]) - d3.sum(a[1], d => d["Value_co2_emissions_kt_by_country"]))
+                                      .slice(0, 10)
+                                      .map(d => d[0]);
+
+            x.domain(d3.extent(data, function(d) { return d.Year; }));
+            y.domain([0, d3.max(data, function(d) { return d["Value_co2_emissions_kt_by_country"]; })]);
+
+            g.append("g")
+             .attr("transform", "translate(0," + height + ")")
+             .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+             .append("text")
+             .attr("class", "axis-label")
+             .attr("y", 35)
+             .attr("x", width / 2)
+             .attr("text-anchor", "end")
+             .text("Year");
+
+            g.append("g")
+             .call(d3.axisLeft(y))
+             .append("text")
+             .attr("class", "axis-label")
+             .attr("transform", "rotate(-90)")
+             .attr("y", -40)
+             .attr("x", -height / 2)
+             .attr("text-anchor", "end")
+             .text("CO2 Emissions (kt)");
+
+            top10Countries.forEach(function(country, i) {
+                var countryData = dataByCountry.get(country).filter(d => d.Year >= 2000 && d.Year <= 2018);
+                g.append("path")
+                 .datum(countryData)
+                 .attr("class", "line")
+                 .attr("d", line)
+                 .style("stroke", color(i));
+
+                // Add legend
+                g.append("rect")
+                 .attr("x", width + 20)
+                 .attr("y", i * 20)
+                 .attr("width", 10)
+                 .attr("height", 10)
+                 .style("fill", color(i));
+
+                g.append("text")
+                 .attr("x", width + 35)
+                 .attr("y", i * 20 + 9)
+                 .text(country)
+                 .attr("class", "legend");
+            });
+        });
+    </script>
+</body>
+</html>
